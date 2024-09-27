@@ -35,10 +35,6 @@ public class ControlClient
 
     private static readonly string[] CommonMetadata = new string[] { "health" };
 
-    private static readonly Dictionary<string, MetadataDelegate> Metadata = new()
-    {
-        //{ "health", MetadataDelegates.Health }
-    };
 
     private static readonly Dictionary<string, EffectDelegate> Delegate = new()
     {
