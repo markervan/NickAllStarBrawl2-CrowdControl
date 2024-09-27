@@ -1,0 +1,187 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+
+    <!-- ALWAYS SET THESE FOR A NEW GAME! -->
+    <TargetFrameworks>net48</TargetFrameworks>
+    <GameBaseDir>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2</GameBaseDir>
+    <GameAssemblyDir>$(GameBaseDir)\Nickelodeon All-Star Brawl 2_Data\Managed</GameAssemblyDir>
+    <AppDataDir>$(APPDATA)</AppDataDir>
+    <!--========================================-->
+    
+	  
+	  
+	  
+    <RootNamespace>BepinControl</RootNamespace>
+    <AssemblyName>CrowdControl</AssemblyName>
+
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <BaseOutputPath>bin\</BaseOutputPath>
+
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="ControlClient.old.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ControlClient.old.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\BepInEx\plugins&quot;" />
+	</Target>
+	
+	
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\BepInEx\core\0Harmony.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Assembly-CSharp-publicized.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="BepInEx">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\BepInEx\core\BepInEx.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Cinemachine">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\Cinemachine.dll</HintPath>
+    </Reference>
+    <Reference Include="ConnectorLib.JSON">
+      <HintPath>C:\Users\user\Desktop\SDK\ConnectorLib.JSON.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="PhotonDeterministic">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\PhotonDeterministic.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="quantum.code">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\quantum.code.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="quantum.core">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\quantum.core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\Unity.InputSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Localization">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\Unity.Localization.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\unstripped_corlib\UnityEngine.CoreModule.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputModule">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\UnityEngine.InputModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Nickelodeon All-Star Brawl 2\Nickelodeon All-Star Brawl 2_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+	
+	
+	
+  <ItemGroup>
+    <Reference Update="System">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+	
+	
+	
+  <ItemGroup>
+    <Reference Update="System.Core">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+	
+	
+	
+  <ItemGroup>
+    <Reference Update="System.Data">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+	
+	
+	
+  <ItemGroup>
+    <Reference Update="System.Drawing">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+	
+	
+	
+  <ItemGroup>
+    <Reference Update="System.IO.Compression.FileSystem">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+	
+	
+	
+  <ItemGroup>
+    <Reference Update="System.Numerics">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+	
+	
+	
+  <ItemGroup>
+    <Reference Update="System.Runtime.Serialization">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+	
+	
+	
+  <ItemGroup>
+    <Reference Update="System.Xml">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+	
+	
+	
+  <ItemGroup>
+    <Reference Update="System.Xml.Linq">
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
