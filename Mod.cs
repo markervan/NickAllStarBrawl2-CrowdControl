@@ -13,6 +13,7 @@ using System.Linq;
 using Photon.Deterministic;
 using UnityEngine.InputSystem;
 using Cinemachine;
+using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 
 namespace BepinControl;
 
@@ -28,6 +29,9 @@ public class Mod : BaseUnityPlugin
     public static BarkHUD barkHudData;
     public static List<BarkData> barkDataList = new List<BarkData>();
     public static ObjectiveCard objectiveCard;
+
+    public static List<CharacterCodename> randomChar = new List<CharacterCodename>();
+    public static bool lockedCharacter = false;
 
 
     public static bool fpsOn = false;
@@ -116,8 +120,20 @@ public class Mod : BaseUnityPlugin
             return GameManager.Instance.MatchManager;
         }
     }
-
-
+    static public GameManager gameManager
+    {
+        get
+        {
+            return GameManager.Instance;
+        }
+    }
+    public static SceneLoadManager sceneLoadManager
+    {
+        get
+        {
+            return GameManager.Instance.SceneLoadManager;
+        }
+    }
 
     void Awake()
     {
@@ -146,6 +162,32 @@ public class Mod : BaseUnityPlugin
 
     public void Update()
     {
+        if (gameManager.CurrentGameContext == GameContext.Campaign)
+        {
+            if (!hudDoneLoading)
+            {
+                return;
+            }
+
+            if (matchManager.CampaignManager.InMatch)
+            {
+                //Debug.Log("in match");
+            }
+            if (matchManager.CampaignManager.InLevelSelector)
+            {
+                //Debug.Log("in levelselector");
+            }
+
+        }
+        if (Keyboard.current.wKey.wasPressedThisFrame)
+        {
+            foreach (var entry in randomChar)
+            {
+                Debug.Log(entry);
+            }
+            
+        }
+
         // If the head bone has been found, update the camera offset every frame
         if (headBone != null && freecamera != null)
         {
@@ -245,7 +287,46 @@ public class Mod : BaseUnityPlugin
                     thread.effect.tick();
             }
         }
+    }
+    /*[HarmonyPatch(typeof(CampaignManager), "StartRun")]
+    [HarmonyPrefix]
+    static void StartRun(CampaignManager __instance)
+    {
+        // Check if randomChar has any elements
+        if (randomChar == null || randomChar.Count == 0)
+        {
+            //UnityEngine.Debug.LogError("randomChar list is empty or null.");
+            return;
+        }
 
+        // Exit if lockedCharacter is true
+        if (lockedCharacter)
+        {
+            return;
+        }
+
+        // Access the first character safely
+        //UnityEngine.Debug.Log($"Changing to character: {randomChar[0]}");
+        //ChangeCharacter(randomChar[0]);
+    }*/
+    [HarmonyPatch(typeof(CampaignManager), "StartNextLevel")]
+    [HarmonyPrefix]
+    static void StartNextLevel(CampaignManager __instance)
+    {
+        // Check if randomChar has any elements
+        if (randomChar == null || randomChar.Count == 0)
+        {
+            UnityEngine.Debug.LogError("randomChar list is empty or null.");
+            return;
+        }
+
+        // Exit if lockedCharacter is true
+        if (lockedCharacter)
+        {
+            return;
+        }
+        UnityEngine.Debug.Log($"Changing to character: {randomChar[0]}");
+        ChangeCharacter(randomChar[0]);
     }
 
     [HarmonyPatch(typeof(MatchHUD), "OnMatchReady")]
@@ -274,11 +355,6 @@ public class Mod : BaseUnityPlugin
     [HarmonyPrefix]
     static bool OnEnable()
     {
-        //hudDoneLoading = false;
-        //freecamera = null;
-        //headBone = null;
-
-        
         return false;
     }
 
@@ -299,6 +375,7 @@ public class Mod : BaseUnityPlugin
     {
         objectiveCard = __instance.ObjectiveCard;
     }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(CampaignResultScreen), "OnEnable")]
     public static bool OnEnable_CampaignResultScreen(CampaignResultScreen __instance)
@@ -310,13 +387,48 @@ public class Mod : BaseUnityPlugin
         return true;
     }
 
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(CutscenesLoader), "OnCutsceneComplete")]
+    public static bool OnCutsceneComplete(CutscenesLoader __instance)
+    {
+        RuntimePlayer player = dataManager.PlayersData.LocalPlayers[0];
+
+        player.CharacterMatchData.Character = CharacterCodename.SpongeBob;
+
+        return true;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ScaleChange_PowerUp), "OnCreate")]
+    public unsafe static bool OnCreate(ScaleChange_PowerUp __instance, Quantum.Frame frame, Quantum.EntityData characterEntityData)
+    {
+        foreach (EquippedPowerUp ptr in frame.ResolveList<EquippedPowerUp>(characterEntityData.character->currentPowerUps))
+        {
+            __instance.GetData(frame, characterEntityData);
+            ScaleChangePowerUp value = default(ScaleChangePowerUp);
+            value.originalScale = characterEntityData.physicsBody->bodyScale;
+            FP level = ptr.level;
+            value.targetScale = level;
+            frame.Set<ScaleChangePowerUp>(characterEntityData.entity, value);
+        }
+        return false;
+    }
+
+    public static void ChangeCharacter(CharacterCodename character)
+    {
+        sceneLoadManager.MatchPreloader.CleanMemoryCharacter();
+        dataManager.PlayersData.LocalPlayers[0].CharacterMatchData.Character = character;
+        dataManager.PlayersData.LocalPlayers[0].CharacterMatchData.Skin = 0;
+
+        
+        randomChar.RemoveAt(0);
+    }
+
     public static void ObjectiveMessage(string message, string viewer)
     {
         objectiveCard.SetObjective(message, viewer, "");
 
     }
-
-
     public static void InitializeSettings()
     {
         List<ItemInfo> itemInfoList = uiManager.ItemsInfo.ItemInfoList;
@@ -352,7 +464,8 @@ public class Mod : BaseUnityPlugin
             CharacterCodename.PowderedToastMan,
             CharacterCodename.Frida,
             CharacterCodename.MrsPuff,
-            CharacterCodename.Computer
+            CharacterCodename.Computer,
+            CharacterCodename.Norbert
 
 
     }.Contains(codename))
@@ -487,7 +600,6 @@ public class Mod : BaseUnityPlugin
         barkHudData.PlayBarkSequence(barkDataList, false, false);
         barkTMP.text = viewerFixed + message;
     }
-
 
     static IEnumerator getVersions()
     {

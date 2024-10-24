@@ -25,12 +25,6 @@
     <BaseOutputPath>bin\</BaseOutputPath>
 
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="ControlClient.old.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ControlClient.old.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

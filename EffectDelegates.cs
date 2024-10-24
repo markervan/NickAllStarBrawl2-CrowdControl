@@ -15,10 +15,6 @@ using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 namespace BepinControl;
 
 public delegate EffectResponse EffectDelegate(ControlClient client, EffectRequest req);
-
-
-
-
 public class EffectDelegates
 {
 
@@ -56,6 +52,14 @@ public class EffectDelegates
         get
         {
             return GameManager.Instance.SceneLoadManager;
+        }
+    }
+
+    public static UIManager uiManager
+    {
+        get
+        {
+            return GameManager.Instance.UIManager;
         }
     }
     public static uint msgid = 0;
@@ -96,6 +100,7 @@ public class EffectDelegates
             status = EffectStatus.Retry;
             Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
         }
+        status = EffectStatus.Retry;
 
         return new EffectResponse(req.ID, status, message);
     }
@@ -204,81 +209,52 @@ public class EffectDelegates
         string message = "";
 
         try
-        {
-            if (Mod.hudDoneLoading &&
-            dataManager.CurrentStageLayoutData.Layout != StageLayout.Extra1 &&
-            dataManager.CurrentStageLayoutData.Layout != StageLayout.Extra2 &&
-            dataManager.CurrentStageLayoutData.Layout != StageLayout.Extra3 &&
-            dataManager.CurrentStageLayoutData.Layout != StageLayout.Extra4 &&
-            dataManager.MatchData.StageID != SceneID.CampaignHub)
-            {
-                Mod.barkMessage("Spawning Random Item!", req.viewer);
-
-                
-
-
-                var randomKey = itemDictionary.Keys.ElementAt(UnityEngine.Random.Range(0, itemDictionary.Count));
-
-                List<CharacterManager> currentCharacterManagers = matchManager.CurrentCharacterManagers;
-                List<int> list = new List<int>();
-                for (int i = 0; i < currentCharacterManagers.Count; i++)
-                {
-                    list.Add(currentCharacterManagers[i].Data.CharacterIndex);
-                }
-                CharacterManager characterManager = matchManager.GetCharacterManager(list[0]);
-
-                Vector3 position = characterManager.CenterReferencePoint.gameObject.transform.position;
-
-                // Remove the if statement and directly access the item
-                ItemInfo itemByName = itemDictionary[randomKey];
-
-                // If the item has complex data, create and send the command
-                CommandOnComplexItemSpawn command = new CommandOnComplexItemSpawn
-                {
-                    ItemData = itemByName.ComplexItemData,
-                    CharacterIndex = 0,
-                    Spawnposition = new FPVector3(position.x.ToFP(), position.y.ToFP())
-                };
-                dataManager.SendCommand(command);
-            }
-            else
+        {   
+            if (!Mod.hudDoneLoading)
             {
                 status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+
             }
-        }
-        catch (Exception e)
-        {
-            status = EffectStatus.Retry;
-            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
-        }
 
-        return new EffectResponse(req.ID, status, message);
-    }
-    public static EffectResponse SwapCharacterRandom(ControlClient client, EffectRequest req)
-    {
-        EffectStatus status = EffectStatus.Success;
-        string message = "";
+            if (
+            dataManager.CurrentStageLayoutData.Layout == StageLayout.Extra1 ||
+            dataManager.CurrentStageLayoutData.Layout == StageLayout.Extra2 ||
+            dataManager.CurrentStageLayoutData.Layout == StageLayout.Extra3 ||
+            dataManager.CurrentStageLayoutData.Layout == StageLayout.Extra4 ||
+            dataManager.MatchData.StageID == SceneID.CampaignHub)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
 
-        try
-        {
-                Mod.barkMessage("Swapping to Random Character!", req.viewer);
-                Mod.freecamera = null;
-                Mod.headBone = null;
-                Mod.fpsOn = false;
 
-                matchManager.CameraManager.UpdateCamera(CameraManager.AvailableCameras.StageCamera);
 
-                var randomCharacter = Mod.validCharacters[UnityEngine.Random.Range(0, Mod.validCharacters.Count)];
+            Mod.barkMessage("Spawning Random Item!", req.viewer);
 
-                CommandChangeCharacter command = new CommandChangeCharacter
-                {
-                    Character = (int)randomCharacter,
-                    CharacterIndex = 0,
-                    Skin = 0,
-                    
-                };
+            var randomKey = itemDictionary.Keys.ElementAt(UnityEngine.Random.Range(0, itemDictionary.Count));
 
-                dataManager.SendCommand(command);
+            List<CharacterManager> currentCharacterManagers = matchManager.CurrentCharacterManagers;
+            List<int> list = new List<int>();
+            for (int i = 0; i < currentCharacterManagers.Count; i++)
+            {
+                list.Add(currentCharacterManagers[i].Data.CharacterIndex);
+            }
+            CharacterManager characterManager = matchManager.GetCharacterManager(list[0]);
+
+            Vector3 position = characterManager.CenterReferencePoint.gameObject.transform.position;
+
+            // Remove the if statement and directly access the item
+            ItemInfo itemByName = itemDictionary[randomKey];
+
+            // If the item has complex data, create and send the command
+            CommandOnComplexItemSpawn command = new CommandOnComplexItemSpawn
+            {
+                ItemData = itemByName.ComplexItemData,
+                CharacterIndex = 0,
+                Spawnposition = new FPVector3(position.x.ToFP(), position.y.ToFP())
+            };
+            dataManager.SendCommand(command);
         }
         catch (Exception e)
         {
@@ -358,7 +334,34 @@ public class EffectDelegates
 
         return new EffectResponse(req.ID, status, message);
     }
+    public static EffectResponse SwapCharacterRandom(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("Test Effect");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
 
+        try
+        {
+            if (!Mod.hudDoneLoading)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+            var randomCharacter = Mod.validCharacters[UnityEngine.Random.Range(0, Mod.validCharacters.Count)];
+
+            Mod.barkMessage("Added Effect: Swap to Random Fighter!", req.viewer);
+            Mod.randomChar.Add(randomCharacter);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
     public static EffectResponse EffectConfuse(ControlClient client, EffectRequest req)
     {
         EffectStatus status = EffectStatus.Success;
@@ -423,10 +426,6 @@ public class EffectDelegates
         {
             List<CharacterManager> currentCharacterManagers = matchManager.CurrentCharacterManagers;
             List<int> list = new List<int>();
-            
-
-            
-
             for (int i = 0; i < currentCharacterManagers.Count; i++)
             {
                 if (currentCharacterManagers[i].Data.CharacterIndex != 0 && currentCharacterManagers[i].firstActivation && currentCharacterManagers[i].CharacterRenderer.IsVisible) 
@@ -471,6 +470,144 @@ public class EffectDelegates
 
         return new EffectResponse(req.ID, status, message);
     }
+    public static EffectResponse EffectKaiju(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+        bool validRun = false;
+
+        try
+        {
+            if (!matchManager.CampaignManager.InMatch)
+            {
+
+                status |= EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+
+            List<CharacterManager> currentCharacterManagers = matchManager.CurrentCharacterManagers;
+            List<int> list = new List<int>();
+            for (int i = 0; i < currentCharacterManagers.Count; i++)
+            {
+                if (currentCharacterManagers[i].Data.CharacterIndex != 0 && currentCharacterManagers[i].firstActivation && currentCharacterManagers[i].CharacterRenderer.IsVisible)
+                {
+                    list.Add(currentCharacterManagers[i].Data.CharacterIndex);
+                }
+
+                if (list.Count > 2)
+                {
+                    validRun = true;
+                    break;
+                }
+            }
+
+            // Only continue if the run is valid (3 or more enemies found)
+            if (validRun)
+            {
+                Mod.barkMessage("Kaijus!", req.viewer);
+                foreach (int characterManagerIndex in list)
+                {
+                    CommandAddPowerUp command = new CommandAddPowerUp
+                    {
+                        CharacterIndex = characterManagerIndex,
+                        Level = 7,
+                        PowerUpIndex = (int)PowerUps.ScaleChange,
+                        
+                    };
+
+
+                    dataManager.SendCommand(command);
+                }
+
+                validRun = false;
+                list.Clear();
+                //currentCharacterManagers.Clear();
+
+                status = EffectStatus.Success;
+            }
+            else
+            {
+                status = EffectStatus.Retry;
+            }
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static EffectResponse EffectUltraman(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+        bool validRun = false;
+
+        try
+        {
+            if (!matchManager.CampaignManager.InMatch)
+            {
+
+                status |= EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+            Mod.barkMessage("Ultraman!", req.viewer);
+            CommandAddPowerUp command = new CommandAddPowerUp
+            {
+                CharacterIndex = 0,
+                Level = 7,
+                PowerUpIndex = (int)PowerUps.ScaleChange,
+
+            };
+
+
+            dataManager.SendCommand(command);
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static EffectResponse EffectFullMeter(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+        bool validRun = false;
+
+        try
+        {
+            if (!matchManager.CampaignManager.InMatch)
+            {
+
+                status |= EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+            Mod.barkMessage("Full Slime Meter!", req.viewer);
+            CommandChangeSlimePoints command = new CommandChangeSlimePoints
+            {
+                CharacterIndex = 0,
+                SlimePoints = 3,
+                Operation = MathOperationMethod.Add,
+                
+            };
+            dataManager.SendCommand(command);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
     public static EffectResponse EndMatch(ControlClient client, EffectRequest req)
     {
         EffectStatus status = EffectStatus.Success;
@@ -478,7 +615,27 @@ public class EffectDelegates
 
         try
         {
-            if(dataManager.MatchData.StageID != SceneID.CampaignHub)
+            if(dataManager.MatchData.StageID == SceneID.CampaignHub || dataManager.MatchData.StageLayout == StageLayout.BotsMinigame)
+            {
+                status = EffectStatus.Retry; 
+                return new EffectResponse(req.ID, status, message);
+            }
+            if (dataManager.MatchData.StageLayout == StageLayout.TargetsMinigame ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameAang ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameAngryBeavers ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameApril ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameAzula ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameDanny ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameDonatello ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameElTigre ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameEmber ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameGarfield ||
+                dataManager.MatchData.StageLayout == StageLayout.TargetsMinigameGerald
+                )
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
 
             Mod.barkMessage("End Match!", req.viewer);
             CommandEndMatch command = new CommandEndMatch
@@ -497,6 +654,32 @@ public class EffectDelegates
 
         return new EffectResponse(req.ID, status, message);
     }
+    public static EffectResponse LeaveCampaign(ControlClient client, EffectRequest req)
+        {
+            EffectStatus status = EffectStatus.Success;
+            string message = "";
+
+            try
+            {
+                if (!matchManager.CampaignManager.InMatch)
+                {
+                    status = EffectStatus.Retry;
+                    return new EffectResponse(req.ID, status, message);
+                }
+
+                Mod.barkMessage("To the Main Menu!", req.viewer);
+
+                campaignManager.CampaignHUD.RunPauseMenu.campaignManager.SaveCampaign();
+                campaignManager.CampaignHUD.RunPauseMenu.GoToMainMenu();
+            }
+            catch (Exception e)
+            {
+                status = EffectStatus.Retry;
+                Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+            }
+
+            return new EffectResponse(req.ID, status, message);
+        }
 
     /*public static EffectResponse TestEffect(ControlClient client, EffectRequest req)
     {
@@ -523,53 +706,26 @@ public class EffectDelegates
     }*/
 
     #endregion
-    
+
     public static EffectResponse TestEffect(ControlClient client, EffectRequest req)
     {
-        Debug.Log("Test Effect");
         EffectStatus status = EffectStatus.Success;
         string message = "";
 
         try
         {
-            var randomCharacter = Mod.validCharacters[UnityEngine.Random.Range(0, Mod.validCharacters.Count)];
-
-            sceneLoadManager.MatchPreloader.CleanMemoryCharacter();
-            for (int j = 0; j < dataManager.PlayersData.LocalPlayers.Count; j++)
+            if (!matchManager.CampaignManager.InMatch)
             {
-                if (dataManager.PlayersData.LocalPlayers[j].PlayerIndex == dataManager.Player1Index)
-                {
-                    dataManager.PlayersData.LocalPlayers[j].CharacterMatchData.Character = randomCharacter;
-                    dataManager.PlayersData.LocalPlayers[j].CharacterMatchData.Skin = 0;
-                }
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
             }
-            sceneLoadManager.LoadOfflineMatch(null, false);
-
-            
-
-            /*RuntimePlayer runtimePlayer = dataManager.PlayersData.LocalPlayers[0];
-            RuntimePlayer defaultLocalCoopPlayer = matchManager.CampaignManager.DefaultLocalCoopPlayer;
-            defaultLocalCoopPlayer.CharacterMatchData = runtimePlayer.CharacterMatchData;
-            defaultLocalCoopPlayer.IsSpectator = runtimePlayer.IsSpectator;
-            defaultLocalCoopPlayer.PlayerIndex = runtimePlayer.PlayerIndex;
-            defaultLocalCoopPlayer.PlayerSettings = runtimePlayer.PlayerSettings;
-            defaultLocalCoopPlayer.PlayerIndex = dataManager.PlayersData.GetAvailablePlayerIndex();
-
-            defaultLocalCoopPlayer.CharacterMatchData.Nickname = "FREAKBOB";
-            defaultLocalCoopPlayer.CharacterMatchData.Character = CharacterCodename.SpongeBob;
-
-            dataManager.PlayersData.LocalPlayers.Add(defaultLocalCoopPlayer);
-            dataManager.CurrentQuantumGame.SendPlayerData(defaultLocalCoopPlayer.PlayerIndex, defaultLocalCoopPlayer);
-
-
-
-            CommandSpawnPlayerCharacter player = new CommandSpawnPlayerCharacter
+            /*if (!matchManager.CampaignManager.CampaignHUD.BossHealthBar.enabled)
             {
-                PlayerRef = defaultLocalCoopPlayer.PlayerIndex,
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }*/
 
-                SpawnContext = CharacterSpawnContext.RuntimeCharacter,
-            };
-            dataManager.SendCommand(player);*/
+            Mod.barkMessage("Boss Health!", req.viewer);
 
         }
         catch (Exception e)
@@ -589,7 +745,20 @@ public class EffectDelegates
 
         if (TimedThread.isRunning(TimedType.ENHANCEDASH)) return new EffectResponse(req.ID, EffectStatus.Retry, "");
 
+        Mod.barkMessage("Enhance Dash!", req.viewer);
+
         new Thread(new TimedThread(req.ID, TimedType.ENHANCEDASH, dur).Run).Start();
+        return new EffectResponse(req.ID, EffectStatus.Success, dur);
+    }
+    public static EffectResponse ExplosiveProjectiles(ControlClient client, EffectRequest req)
+    {
+        long dur = req.duration ?? 30000;
+
+        if (TimedThread.isRunning(TimedType.EXPLOSIVEPROJ)) return new EffectResponse(req.ID, EffectStatus.Retry, "");
+
+        Mod.barkMessage("Explosive Projectiles!", req.viewer);
+
+        new Thread(new TimedThread(req.ID, TimedType.EXPLOSIVEPROJ, dur).Run).Start();
         return new EffectResponse(req.ID, EffectStatus.Success, dur);
     }
     public static EffectResponse CameraTopView(ControlClient client, EffectRequest req)

@@ -27,7 +27,13 @@ public class ControlClient
             return GameManager.Instance;
         }
     }
-
+    public static SceneLoadManager sceneLoadManager
+    {
+        get
+        {
+            return GameManager.Instance.SceneLoadManager;
+        }
+    }
     public DataManager dataManager => GameManager.Instance.DataManager;
 
     public static readonly string CV_HOST = "127.0.0.1";
@@ -52,14 +58,19 @@ public class ControlClient
 
         //player effects
         { "enhance_dash", EffectDelegates.EnhanceDash },
+        { "explosive_proj", EffectDelegates.ExplosiveProjectiles },
+        { "fullmeter", EffectDelegates.EffectFullMeter },
         { "killplayer", EffectDelegates.EffectKillPlayer },
+        { "ultraman", EffectDelegates.EffectUltraman },
         { "swapcharacterrandom", EffectDelegates.SwapCharacterRandom },
 
         //enemies effects
         { "killenemies", EffectDelegates.EffectKillEnemies},
+        { "kaijuenemies", EffectDelegates.EffectKaiju },
 
         //match effects
-        { "endmatch", EffectDelegates.EndMatch },
+        { "endmatch", EffectDelegates.EndMatch},
+        { "leavecampaign" , EffectDelegates.LeaveCampaign},
         { "cameratopview", EffectDelegates.CameraTopView},
         { "camerabottomview", EffectDelegates.CameraBottomView},
         { "firstpersonview", EffectDelegates.CameraFirstPerson},
@@ -102,13 +113,12 @@ public class ControlClient
         {
             //TestMod.mls.LogInfo($"landed: {StartOfRound.Instance.shipHasLanded}");
             //TestMod.mls.LogInfo($"planet: {RoundManager.Instance.currentLevel.PlanetName}");
-            if (!(gameManager.CurrentGameContext == GameContext.Campaign)) return false;
+            if (gameManager.CurrentGameContext != GameContext.Campaign)
+            {
+                return false;
+            }
+            
             if(!Mod.hudDoneLoading) return false;
-
-            //if (!StartOfRound.Instance.shipHasLanded) return false;
-
-            //if (RoundManager.Instance.currentLevel.PlanetName.ToLower().Contains("gordion")) return false;
-            //if (RoundManager.Instance.currentLevel.PlanetName.ToLower().Contains("company")) return false;
 
         }
         catch (Exception e)

@@ -15,6 +15,7 @@ public enum TimedType
 {
     //porweups
     ENHANCEDASH,
+    EXPLOSIVEPROJ,
 
     //camera
     CAMERATOPVIEW,
@@ -66,6 +67,25 @@ public class Timed
                         {
                             CharacterIndex = 0,
                             PowerUpIndex = (int)PowerUps.DodgesRangeIncrease,
+                            Level = 3,
+                            Lifetime = 0, // Use duration here
+                            AddToEveryone = false
+                        };
+                        dataManager.SendCommand(command);
+                    });
+                    break;
+                }
+            case TimedType.EXPLOSIVEPROJ:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        //Mod.barkMessage("Enhancing Dashes!", "Viewer");
+                        Debug.Log("Enhancing Dash....");
+
+                        CommandAddPowerUp command = new CommandAddPowerUp
+                        {
+                            CharacterIndex = 0,
+                            PowerUpIndex = (int)PowerUps.ProjectilesExplosion,
                             Level = 3,
                             Lifetime = 0, // Use duration here
                             AddToEveryone = false
@@ -171,6 +191,21 @@ public class Timed
                         {
                             CharacterIndex = 0,
                             PowerUpIndex = (int)PowerUps.DodgesRangeIncrease,
+                            RemoveFromEveryone = true
+                        };
+                        dataManager.SendCommand(command);
+                    });
+                    break;
+                }
+            case TimedType.EXPLOSIVEPROJ:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Debug.Log("Removing Enhancing Dash....");
+                        CommandRemovePowerUp command = new CommandRemovePowerUp
+                        {
+                            CharacterIndex = 0,
+                            PowerUpIndex = (int)PowerUps.ProjectilesExplosion,
                             RemoveFromEveryone = true
                         };
                         dataManager.SendCommand(command);
