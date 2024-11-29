@@ -11,6 +11,13 @@ using UnityEngine;
 using System.Linq;
 using Cinemachine;
 using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
+using System.Collections;
+using System.Runtime.CompilerServices;
+using UnityEngine.Bindings;
+using UnityEngine.Internal;
+using UnityEngine.Scripting;
+using System.Threading.Tasks;
+using static Quantum.AirDodgeDropBomb_PowerUp;
 
 namespace BepinControl;
 
@@ -54,7 +61,6 @@ public class EffectDelegates
             return GameManager.Instance.SceneLoadManager;
         }
     }
-
     public static UIManager uiManager
     {
         get
@@ -62,9 +68,12 @@ public class EffectDelegates
             return GameManager.Instance.UIManager;
         }
     }
+
     public static uint msgid = 0;
 
     public static uint givedelay = 0;
+
+
 
     #region effects 
     public static EffectResponse Damage50(ControlClient client, EffectRequest req)
@@ -82,7 +91,7 @@ public class EffectDelegates
                     
 
                     Mod.barkMessage("Added +50 Damage!", req.viewer);
-                    Mod.ObjectiveMessage(req.viewer, "Added +50 Damage!");
+                    //Mod.ObjectiveMessage(req.viewer, "Added +50 Damage!");
 
                     CommandDealDamage command = new CommandDealDamage
                     {
@@ -100,7 +109,7 @@ public class EffectDelegates
             status = EffectStatus.Retry;
             Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
         }
-        status = EffectStatus.Retry;
+        //status = EffectStatus.Retry;
 
         return new EffectResponse(req.ID, status, message);
     }
@@ -203,7 +212,7 @@ public class EffectDelegates
 
         return new EffectResponse(req.ID, status, message);
     }
-    public static EffectResponse SpawnItem(ControlClient client, EffectRequest req)
+    public static unsafe EffectResponse SpawnItem(ControlClient client, EffectRequest req)
     {
         EffectStatus status = EffectStatus.Success;
         string message = "";
@@ -221,10 +230,9 @@ public class EffectDelegates
             dataManager.CurrentStageLayoutData.Layout == StageLayout.Extra1 ||
             dataManager.CurrentStageLayoutData.Layout == StageLayout.Extra2 ||
             dataManager.CurrentStageLayoutData.Layout == StageLayout.Extra3 ||
-            dataManager.CurrentStageLayoutData.Layout == StageLayout.Extra4 ||
-            dataManager.MatchData.StageID == SceneID.CampaignHub)
+            dataManager.CurrentStageLayoutData.Layout == StageLayout.Extra4)
             {
-                status = EffectStatus.Retry;
+                status = EffectStatus.NotReady;
                 return new EffectResponse(req.ID, status, message);
             }
 
@@ -232,29 +240,23 @@ public class EffectDelegates
 
             Mod.barkMessage("Spawning Random Item!", req.viewer);
 
+
+            Quantum.Frame frame = dataManager.VerifiedFrame;
+
+            CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+            EntityData characterEntity = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
             var randomKey = itemDictionary.Keys.ElementAt(UnityEngine.Random.Range(0, itemDictionary.Count));
 
-            List<CharacterManager> currentCharacterManagers = matchManager.CurrentCharacterManagers;
-            List<int> list = new List<int>();
-            for (int i = 0; i < currentCharacterManagers.Count; i++)
-            {
-                list.Add(currentCharacterManagers[i].Data.CharacterIndex);
-            }
-            CharacterManager characterManager = matchManager.GetCharacterManager(list[0]);
-
-            Vector3 position = characterManager.CenterReferencePoint.gameObject.transform.position;
-
-            // Remove the if statement and directly access the item
             ItemInfo itemByName = itemDictionary[randomKey];
 
-            // If the item has complex data, create and send the command
-            CommandOnComplexItemSpawn command = new CommandOnComplexItemSpawn
+            FPVector3 position = characterEntity.transform->Position;
+
+            if (frame.TryFindAsset<AssetRefComplexItemData, ComplexItemData>(itemByName.ComplexItemData, out var asset))
             {
-                ItemData = itemByName.ComplexItemData,
-                CharacterIndex = 0,
-                Spawnposition = new FPVector3(position.x.ToFP(), position.y.ToFP())
-            };
-            dataManager.SendCommand(command);
+                asset.Spawn(frame, position, characterEntity.CharacterIndex);
+            }
         }
         catch (Exception e)
         {
@@ -505,7 +507,7 @@ public class EffectDelegates
             // Only continue if the run is valid (3 or more enemies found)
             if (validRun)
             {
-                Mod.barkMessage("Kaijus!", req.viewer);
+                Mod.barkMessage("Kaiju Enemies!", req.viewer);
                 foreach (int characterManagerIndex in list)
                 {
                     CommandAddPowerUp command = new CommandAddPowerUp
@@ -661,11 +663,11 @@ public class EffectDelegates
 
             try
             {
-                if (!matchManager.CampaignManager.InMatch)
+                /*if (!matchManager.CampaignManager.InMatch)
                 {
                     status = EffectStatus.Retry;
                     return new EffectResponse(req.ID, status, message);
-                }
+                }*/
 
                 Mod.barkMessage("To the Main Menu!", req.viewer);
 
@@ -680,6 +682,31 @@ public class EffectDelegates
 
             return new EffectResponse(req.ID, status, message);
         }
+    public static EffectResponse ShieldBreak1(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            if (!Mod.hudDoneLoading)
+            {
+                status = EffectStatus.NotReady;
+                return new EffectResponse(req.ID, status, message);
+            }
+            Mod.barkMessage("Insta-Shield Break", req.viewer);
+
+            
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
 
     /*public static EffectResponse TestEffect(ControlClient client, EffectRequest req)
     {
@@ -689,11 +716,14 @@ public class EffectDelegates
 
         try
         {
-            Mod.barkMessage("Killing all!", req.viewer);
+            //Mod.barkMessage("Killing all!", req.viewer);
 
             CampaignHUD campaignHUD = campaignManager.CampaignHUD;
 
-            campaignHUD.ToggleBlackscreen(true);
+            //campaignHUD.ToggleBlackscreen(true);
+
+
+
 
         }
         catch (Exception e)
@@ -706,26 +736,17 @@ public class EffectDelegates
     }*/
 
     #endregion
-
-    public static EffectResponse TestEffect(ControlClient client, EffectRequest req)
+    public static unsafe EffectResponse AddSlime(ControlClient client, EffectRequest req)
     {
         EffectStatus status = EffectStatus.Success;
         string message = "";
 
         try
         {
-            if (!matchManager.CampaignManager.InMatch)
-            {
-                status = EffectStatus.Retry;
-                return new EffectResponse(req.ID, status, message);
-            }
-            /*if (!matchManager.CampaignManager.CampaignHUD.BossHealthBar.enabled)
-            {
-                status = EffectStatus.Retry;
-                return new EffectResponse(req.ID, status, message);
-            }*/
-
-            Mod.barkMessage("Boss Health!", req.viewer);
+            campaignManager.CurrencyManager.SetCurrency(CampaignCurrency.Slime, 100, MathOperationMethod.Add, false);
+            campaignManager.CampaignHUD.UpdateCurrency();
+            
+            Mod.barkMessage("Slime Currency!", req.viewer);
 
         }
         catch (Exception e)
@@ -736,9 +757,666 @@ public class EffectDelegates
 
         return new EffectResponse(req.ID, status, message);
     }
+    public static unsafe EffectResponse AddSplat(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
 
+        try
+        {
+            campaignManager.CurrencyManager.SetCurrency(CampaignCurrency.Splat, 100, MathOperationMethod.Add, false);
+            campaignManager.CampaignHUD.UpdateCurrency();
+
+            Mod.barkMessage("Splat Currency!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse AddBlimp(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            campaignManager.CurrencyManager.SetCurrency(CampaignCurrency.Blimp, 100, MathOperationMethod.Add, false);
+            campaignManager.CampaignHUD.UpdateCurrency();
+
+            Mod.barkMessage("Splat Currency!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SubSlime(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            campaignManager.CurrencyManager.SetCurrency(CampaignCurrency.Slime, 100, MathOperationMethod.Substract, false);
+            campaignManager.CampaignHUD.UpdateCurrency();
+
+            Mod.barkMessage("Remove Slime Currency!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SubSplat(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            campaignManager.CurrencyManager.SetCurrency(CampaignCurrency.Splat, 100, MathOperationMethod.Substract, false);
+            campaignManager.CampaignHUD.UpdateCurrency();
+
+            Mod.barkMessage("Remove Splat Currency!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SubBlimp(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            campaignManager.CurrencyManager.SetCurrency(CampaignCurrency.Blimp, 100, MathOperationMethod.Substract, false);
+            campaignManager.CampaignHUD.UpdateCurrency();
+
+            Mod.barkMessage("Remove Splat Currency!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse TriggerUlt(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            /*if (!matchManager.CampaignManager.InMatch)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }*/
+            if (matchManager.InCutscene)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+            Quantum.Frame frame = dataManager.VerifiedFrame;
+
+            CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+            
+            EntityData entityData = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+            CustomAnimator.SetTrigger(frame, entityData.animator, 74);
+            Mod.barkMessage("Ultimate!", req.viewer);
+
+            //DelayedMethodCall(10000, TypeCancel.Animation);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse TriggerSpinOut(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            /*if (!matchManager.CampaignManager.InMatch)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }*/
+            if (matchManager.InCutscene)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+            Quantum.Frame frame = dataManager.VerifiedFrame;
+
+            CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+            EntityData entityData = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+            CustomAnimator.SetTrigger(frame, entityData.animator, 54);
+            Mod.barkMessage("Spin Out!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse TriggerTeeter(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            /*if (!matchManager.CampaignManager.InMatch)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }*/
+            if (matchManager.InCutscene)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+            Quantum.Frame frame = dataManager.VerifiedFrame;
+
+            CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+            EntityData entityData = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+            CustomAnimator.SetTrigger(frame, entityData.animator, 76);
+            Mod.barkMessage("Teeter!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse TriggerEntrace(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            /*if (!matchManager.CampaignManager.InMatch)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }*/
+            if (matchManager.InCutscene)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+            Quantum.Frame frame = dataManager.VerifiedFrame;
+
+            CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+            EntityData entityData = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+            CustomAnimator.SetTrigger(frame, entityData.animator, 68);
+            Mod.barkMessage("Entrance!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse TriggerSlimeBurst(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            /*if (!matchManager.CampaignManager.InMatch)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }*/
+            if (matchManager.InCutscene)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+            Quantum.Frame frame = dataManager.VerifiedFrame;
+
+            CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+            EntityData entityData = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+            CustomAnimator.SetTrigger(frame, entityData.animator, 73);
+            Mod.barkMessage("Slime Burst!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SpawnBombs(ControlClient client, EffectRequest req)
+    {
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            /*if (!matchManager.CampaignManager.InMatch)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }*/
+            if (matchManager.InCutscene)
+            {
+                status = EffectStatus.Retry;
+                return new EffectResponse(req.ID, status, message);
+            }
+
+            Quantum.Frame frame = dataManager.VerifiedFrame;
+
+            CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+            EntityData characterEntity = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+            AirDodgeDropBomb_PowerUpAsset puasset = UnityDB.FindAsset<AirDodgeDropBomb_PowerUpAsset>(1320259745604944520);
+
+            AirDodgeDropBomb_PowerUp.AirDodgeDropBomb_PowerUpData airDodgeDropBomb_PowerUpData = puasset.Settings.LevelsData[0];
+
+            FPVector3 basePosition = characterEntity.transform->Position;
+            ComplexItemData complexItemData;
+
+            if (frame.TryFindAsset<AssetRefComplexItemData, ComplexItemData>(airDodgeDropBomb_PowerUpData.ComplexItemDataAsset, out complexItemData))
+            {
+                // Spawn at the base position
+                complexItemData.Spawn(frame, basePosition, characterEntity.CharacterIndex);
+
+                // Spawn additional items around the base position
+                int radius = 5; // Radius for spreading the items (must be an integer)
+                int numItems = 10; // Number of items to spawn around the base position
+
+                for (int i = 0; i < numItems; i++)
+                {
+                    // Calculate angle and offset for each item
+                    float angle = i * (360f / numItems); // Distribute items evenly in a circle
+                    float radians = angle * Mathf.Deg2Rad;
+                    int offsetX = (int)(Mathf.Cos(radians) * radius); // Convert float to int
+                    int offsetY = (int)(Mathf.Sin(radians) * radius); // Convert float to int
+
+                    // Calculate the new position
+                    FPVector3 offset = new FPVector3(offsetX, offsetY, 0); // Ensure Z is 0 for 2D
+                    FPVector3 newPosition = basePosition + offset;
+
+                    // Spawn the item
+                    complexItemData.Spawn(frame, newPosition, characterEntity.CharacterIndex);
+                }
+            }
+
+
+            Mod.barkMessage("Spawn Bombs!", req.viewer);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SpawnHugh(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("Hugh Neutron!");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            CommandSpawnEntity commandSpawnEntity = new CommandSpawnEntity
+            {
+                InteractableID = Interactables.HughNeutron,
+                SpawnPointID = "custom1",
+
+            };
+
+            dataManager.SendCommand(commandSpawnEntity);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SpawnFrida(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("Frida!");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            CommandSpawnEntity commandSpawnEntity = new CommandSpawnEntity
+            {
+                InteractableID = Interactables.Frida,
+                SpawnPointID = "custom1",
+
+            };
+
+            dataManager.SendCommand(commandSpawnEntity);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SpawnMrsPuff(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("MrsPuff!");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            CommandSpawnEntity commandSpawnEntity = new CommandSpawnEntity
+            {
+                InteractableID = Interactables.MrsPuff,
+                SpawnPointID = "custom1",
+
+            };
+
+            dataManager.SendCommand(commandSpawnEntity);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SpawnGir(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("Gir!");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            CommandSpawnEntity commandSpawnEntity = new CommandSpawnEntity
+            {
+                InteractableID = Interactables.Gir,
+                SpawnPointID = "custom1",
+
+            };
+
+            dataManager.SendCommand(commandSpawnEntity);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SpawnCabbaggeMerchant(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("CabbaggeMerchant!");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            CommandSpawnEntity commandSpawnEntity = new CommandSpawnEntity
+            {
+                InteractableID = Interactables.CabbaggeMerchant,
+                SpawnPointID = "custom1",
+
+            };
+
+            dataManager.SendCommand(commandSpawnEntity);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SpawnPowderedToastMan(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("PowderedToastMan!");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            CommandSpawnEntity commandSpawnEntity = new CommandSpawnEntity
+            {
+                InteractableID = Interactables.PowderedToastMan,
+                SpawnPointID = "custom1",
+
+            };
+
+            dataManager.SendCommand(commandSpawnEntity);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    public static unsafe EffectResponse SpawnFountain(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("Fountain!");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            CommandSpawnEntity commandSpawnEntity = new CommandSpawnEntity
+            {
+                InteractableID = Interactables.Fountain,
+                SpawnPointID = "custom1",
+
+            };
+
+            dataManager.SendCommand(commandSpawnEntity);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    
+    public static unsafe EffectResponse TestEffect(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("Fountain!");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            Quantum.Frame frame = dataManager.VerifiedFrame;
+
+            CharacterManager characterManager = matchManager.CurrentCharacterManagers[1];
+
+            EntityData characterEntity = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+            //characterEntity.character->Freezeinput = slowdownEffectData.StopInput;
+
+            characterEntity.physicsBody->velocityMultiplier = 2;
+            characterEntity.animator->animationSpeedMultiplier = 2;
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }
+    /*public static unsafe EffectResponse TestEffect(ControlClient client, EffectRequest req)
+    {
+        Debug.Log("Test Effect");
+        EffectStatus status = EffectStatus.Success;
+        string message = "";
+
+        try
+        {
+            CommandSpawnEntity commandSpawnEntity = new CommandSpawnEntity
+            {
+                InteractableID = Interactables.HughNeutron,
+                SpawnPointID = "custom1",
+                
+            };
+
+            dataManager.SendCommand(commandSpawnEntity);
+
+        }
+        catch (Exception e)
+        {
+            status = EffectStatus.Retry;
+            Mod.mls.LogInfo($"Crowd Control Error: {e.ToString()}");
+        }
+
+        return new EffectResponse(req.ID, status, message);
+    }*/
     #region timedeffects
     //Timed Effects
+    public static EffectResponse SuperSpeed(ControlClient client, EffectRequest req)
+    {
+        long dur = req.duration ?? 10000;
+
+        if (TimedThread.isRunning(TimedType.SUPERSPEED)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+        if (TimedThread.isRunning(TimedType.SUPERSLOW)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+        new Thread(new TimedThread(req.ID, TimedType.SUPERSPEED, dur).Run).Start();
+
+        Mod.barkMessage("Super Speed!", req.viewer);
+        return new EffectResponse(req.ID, EffectStatus.Success, dur);
+    }
+    public static EffectResponse SuperSlowness(ControlClient client, EffectRequest req)
+    {
+        long dur = req.duration ?? 10000;
+
+        if (TimedThread.isRunning(TimedType.SUPERSPEED)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+        if (TimedThread.isRunning(TimedType.SUPERSLOW)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+        new Thread(new TimedThread(req.ID, TimedType.SUPERSLOW, dur).Run).Start();
+
+        Mod.barkMessage("Super Slowness!", req.viewer);
+        return new EffectResponse(req.ID, EffectStatus.Success, dur);
+    }
+    public static EffectResponse MobsSuperSpeed(ControlClient client, EffectRequest req)
+    {
+        long dur = req.duration ?? 10000;
+
+        if (TimedThread.isRunning(TimedType.MOBSSPEED)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+        if (TimedThread.isRunning(TimedType.MOBSSLOW)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+        new Thread(new TimedThread(req.ID, TimedType.MOBSSPEED, dur).Run).Start();
+
+        Mod.barkMessage("Super Speed!", req.viewer);
+        return new EffectResponse(req.ID, EffectStatus.Success, dur);
+    }
+    public static EffectResponse MobsSuperSlowness(ControlClient client, EffectRequest req)
+    {
+        long dur = req.duration ?? 10000;
+
+        if (TimedThread.isRunning(TimedType.MOBSSPEED)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+        if (TimedThread.isRunning(TimedType.MOBSSLOW)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+        new Thread(new TimedThread(req.ID, TimedType.MOBSSLOW, dur).Run).Start();
+
+        Mod.barkMessage("Super Slowness!", req.viewer);
+        return new EffectResponse(req.ID, EffectStatus.Success, dur);
+    }
+    public static EffectResponse ShieldBreak(ControlClient client, EffectRequest req)
+    {
+        long dur = req.duration ?? 10000;
+
+        if (TimedThread.isRunning(TimedType.INSTASHIELDBREAK)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+
+        new Thread(new TimedThread(req.ID, TimedType.INSTASHIELDBREAK, dur).Run).Start();
+
+        Mod.barkMessage("Insta-Shield Break!", req.viewer);
+        return new EffectResponse(req.ID, EffectStatus.Success, dur);
+    }
+    public static EffectResponse NoSlimeUlt(ControlClient client, EffectRequest req)
+    {
+        long dur = req.duration ?? 10000;
+
+        if (TimedThread.isRunning(TimedType.NOSLIMEULTIMATE)) return new EffectResponse(req.ID, EffectStatus.NotReady, "");
+        new Thread(new TimedThread(req.ID, TimedType.NOSLIMEULTIMATE, dur).Run).Start();
+
+        Mod.barkMessage("Ultimate always available!", req.viewer);
+        return new EffectResponse(req.ID, EffectStatus.Success, dur);
+    }
     public static EffectResponse EnhanceDash(ControlClient client, EffectRequest req)
     {
         long dur = req.duration ?? 30000;
@@ -822,6 +1500,41 @@ public class EffectDelegates
     }
     #endregion
     //Custom Methods
+    private static async void DelayedMethodCall(int time, TypeCancel typeCancel)
+    {
+        Debug.Log("DELAYED");
+        await Task.Delay(time); // 10 seconds delay
+        switch (typeCancel)
+        {
+            case TypeCancel.Animation:
+                Debug.Log("ANIMATION");
+                CancelAnimation();
+
+                break;
+        }
+        
+    }
+
+
+    private static unsafe void CancelAnimation()
+    {
+        Debug.Log("Cancel Anim");
+        Quantum.Frame frame = dataManager.VerifiedFrame;
+
+        CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+        EntityData entityData = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+
+        CustomAnimator.SetTrigger(frame, entityData.animator, 49);
+        CameraManager cameraManager = matchManager.CameraManager;
+
+        cameraManager.UpdateCamera(CameraManager.AvailableCameras.StageCamera);
+    }
+    public enum TypeCancel
+    {
+        Animation
+    }
 
 
     public static void teleportOffStage(float add, int playerIndex)

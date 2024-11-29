@@ -9,6 +9,7 @@ using System.Threading;
 using UnityEngine;
 using Photon.Deterministic;
 using HarmonyLib.Public.Patching;
+using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 namespace BepinControl;
 
 public enum TimedType
@@ -16,17 +17,26 @@ public enum TimedType
     //porweups
     ENHANCEDASH,
     EXPLOSIVEPROJ,
+    SUPERSPEED,
+    SUPERSLOW,
+    EXTRADODGES,
 
     //camera
     CAMERATOPVIEW,
     CAMERABOTTOMVIEW,
     FIRSTPERSON,
 
+    //Mobs
+    MOBSSPEED,
+    MOBSSLOW,
 
     //status
     STATUSTINY,
     STATUSGIANT,
 
+    //SIMULATION
+    INSTASHIELDBREAK,
+    NOSLIMEULTIMATE,
 }
 
 public class Timed
@@ -48,11 +58,12 @@ public class Timed
     }
     public TimedType type;
 
-    public Timed(TimedType t) { 
+    public Timed(TimedType t)
+    { 
         type = t;
     }
 
-    public void addEffect(long duration)
+    public unsafe void addEffect(long duration)
     {
         switch (type)
         {
@@ -94,6 +105,7 @@ public class Timed
                     });
                     break;
                 }
+
 
             case TimedType.CAMERATOPVIEW:
                 {
@@ -153,11 +165,12 @@ public class Timed
 
                         List<CharacterManager> currentCharacterManagers = matchManager.CurrentCharacterManagers;
 
-                        GameObject character = currentCharacterManagers[0].gameObject;
-
+                        CharacterManager character = currentCharacterManagers[0];
 
                         // Use the recursive function to find the head bone
-                        Mod.headBone = Mod.FindHeadBone(character.transform, "head_jnt");
+                        //Mod.headBone = Mod.FindHeadBone(character.transform, "head_jnt");
+                        Mod.HandleFirstPersonView(character);
+
                         Mod.FindExpressions(character.transform, "expressions");
 
                         if (Mod.headBone != null)
@@ -174,14 +187,208 @@ public class Timed
                     }
                     break;
                 }
+            case TimedType.INSTASHIELDBREAK:
+                {
+                    //Mod.instaShieldBreak = true;
+                    Quantum.Frame frame = dataManager.VerifiedFrame;
+                    CombatData combatData = frame.SimulationConfig.GetCombatData();
+                    combatData.BlockHPDecreaseRate = 10;
+                    combatData.BlockHPRecoveryRate = 0;
+                    break;
+                }
+            case TimedType.NOSLIMEULTIMATE:
+                {
+                    Quantum.Frame frame = dataManager.VerifiedFrame;
+                    CombatData combatData = frame.SimulationConfig.GetCombatData();
+                    //combatData.dodge
+                    combatData.UltimatePointsCost = 0;
+                    //combatData.
+                    break;
+                }
+            case TimedType.SUPERSPEED:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Quantum.Frame frame = dataManager.VerifiedFrame;
+
+                        CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+                        EntityData characterEntity = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+                        //characterEntity.character->Freezeinput = slowdownEffectData.StopInput;
+
+                        characterEntity.physicsBody->velocityMultiplier = 2;
+                        characterEntity.animator->animationSpeedMultiplier = 2;
+                    });
+                    break;
+                }
+            case TimedType.SUPERSLOW:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Quantum.Frame frame = dataManager.VerifiedFrame;
+
+                        CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+                        EntityData characterEntity = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+                        //characterEntity.character->Freezeinput = slowdownEffectData.StopInput;
+
+                        characterEntity.physicsBody->velocityMultiplier = characterEntity.physicsBody->velocityMultiplier / 5;
+                        characterEntity.animator->animationSpeedMultiplier = characterEntity.animator->animationSpeedMultiplier / 5;
+                    });
+                    break;
+                }
+            case TimedType.MOBSSPEED:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Quantum.Frame frame = dataManager.VerifiedFrame;
+
+                        List<CharacterManager> currentCharacterManagers = matchManager.CurrentCharacterManagers;
+                        List<int> list = new List<int>();
+                        for (int i = 0; i < currentCharacterManagers.Count; i++)
+                        {
+                            if (currentCharacterManagers[i].Data.CharacterIndex != 0 && currentCharacterManagers[i].firstActivation && currentCharacterManagers[i].CharacterRenderer.IsVisible)
+                            {
+
+                                CharacterManager validMob = currentCharacterManagers[i];
+
+                                EntityData characterEntity = Utils.GetEntityData(frame, validMob.CharacterEntity.EntityRef);
+
+                                //characterEntity.character->Freezeinput = slowdownEffectData.StopInput;
+
+                                characterEntity.physicsBody->velocityMultiplier = 2;
+                                characterEntity.animator->animationSpeedMultiplier = 2;
+
+                                //list.Add(currentCharacterManagers[i].Data.CharacterIndex);
+                            }
+                        }
+                    });
+                    break;
+                }
+            case TimedType.MOBSSLOW:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Quantum.Frame frame = dataManager.VerifiedFrame;
+
+                        List<CharacterManager> currentCharacterManagers = matchManager.CurrentCharacterManagers;
+                        List<int> list = new List<int>();
+                        for (int i = 0; i < currentCharacterManagers.Count; i++)
+                        {
+                            if (currentCharacterManagers[i].Data.CharacterIndex != 0 && currentCharacterManagers[i].firstActivation && currentCharacterManagers[i].CharacterRenderer.IsVisible)
+                            {
+
+                                CharacterManager validMob = currentCharacterManagers[i];
+
+                                EntityData characterEntity = Utils.GetEntityData(frame, validMob.CharacterEntity.EntityRef);
+
+                                //characterEntity.character->Freezeinput = slowdownEffectData.StopInput;
+
+                                characterEntity.physicsBody->velocityMultiplier = characterEntity.physicsBody->velocityMultiplier / 5;
+                                characterEntity.animator->animationSpeedMultiplier = characterEntity.animator->animationSpeedMultiplier / 5;
+
+                                //list.Add(currentCharacterManagers[i].Data.CharacterIndex);
+                            }
+                        }
+                    });
+                    break;
+                }
+
 
         }
     }
 
-    public void removeEffect()
+    public unsafe void removeEffect()
     {
         switch (type)
         {
+            case TimedType.MOBSSLOW:
+            case TimedType.MOBSSPEED:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Quantum.Frame frame = dataManager.VerifiedFrame;
+
+                        List<CharacterManager> currentCharacterManagers = matchManager.CurrentCharacterManagers;
+                        List<int> list = new List<int>();
+                        for (int i = 0; i < currentCharacterManagers.Count; i++)
+                        {
+                            if (currentCharacterManagers[i].Data.CharacterIndex != 0 && currentCharacterManagers[i].firstActivation && currentCharacterManagers[i].CharacterRenderer.IsVisible)
+                            {
+
+                                CharacterManager validMob = currentCharacterManagers[i];
+
+                                EntityData characterEntity = Utils.GetEntityData(frame, validMob.CharacterEntity.EntityRef);
+
+                                //characterEntity.character->Freezeinput = slowdownEffectData.StopInput;
+
+                                characterEntity.physicsBody->velocityMultiplier = 1;
+                                characterEntity.animator->animationSpeedMultiplier = 1;
+
+                                //list.Add(currentCharacterManagers[i].Data.CharacterIndex);
+                            }
+                        }
+                    });
+                    break;
+                }
+            
+            case TimedType.SUPERSPEED:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Quantum.Frame frame = dataManager.VerifiedFrame;
+
+                        CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+                        EntityData characterEntity = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+                        //characterEntity.character->Freezeinput = slowdownEffectData.StopInput;
+
+                        characterEntity.physicsBody->velocityMultiplier = 1;
+                        characterEntity.animator->animationSpeedMultiplier = 1;
+                    });
+                    break;
+                }
+            case TimedType.SUPERSLOW:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Quantum.Frame frame = dataManager.VerifiedFrame;
+
+                        CharacterManager characterManager = matchManager.CurrentCharacterManagers[0];
+
+                        EntityData characterEntity = Utils.GetEntityData(frame, characterManager.CharacterEntity.EntityRef);
+
+                        //characterEntity.character->Freezeinput = slowdownEffectData.StopInput;
+
+                        characterEntity.physicsBody->velocityMultiplier = 1;
+                        characterEntity.animator->animationSpeedMultiplier = 1;
+                    });
+                    break;
+                }
+            case TimedType.INSTASHIELDBREAK:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Quantum.Frame frame = dataManager.VerifiedFrame;
+                        CombatData combatData = frame.SimulationConfig.GetCombatData();
+                        combatData.BlockHPDecreaseRate = FP.FromFloat_UNSAFE(0.1349945f);
+                        combatData.BlockHPRecoveryRate = FP.FromFloat_UNSAFE(0.07199097f);
+                    });
+                    break;
+                }
+            case TimedType.NOSLIMEULTIMATE:
+                {
+                    Mod.ActionQueue.Enqueue(() =>
+                    {
+                        Quantum.Frame frame = dataManager.VerifiedFrame;
+                        CombatData combatData = frame.SimulationConfig.GetCombatData();
+                        combatData.UltimatePointsCost = 3;
+                    });
+                    break;
+                }
             case TimedType.ENHANCEDASH:
                 {
                     Mod.ActionQueue.Enqueue(() =>
@@ -280,12 +487,13 @@ public class TimedThread
 {
     public static List<TimedThread> threads = new();
 
-    public readonly Timed effect;
-    public long duration;
-    public long remain;
-    public uint id;
-    public bool paused;
+    public readonly Timed effect; // Represents the effect logic
+    public long duration;         // Total duration of the effect
+    public long remain;           // Remaining duration
+    public uint id;               // Unique ID for the thread
+    public bool paused;           // Pause state
 
+    // Determines if an effect of a specific type is running
     public static bool isRunning(TimedType t)
     {
         foreach (var thread in threads)
@@ -295,7 +503,7 @@ public class TimedThread
         return false;
     }
 
-
+    // Tick effect logic for all running threads
     public static void tick()
     {
         foreach (var thread in threads)
@@ -304,6 +512,8 @@ public class TimedThread
                 thread.effect.tick();
         }
     }
+
+    // Add additional time to the duration and pause the effect
     public static void addTime(int duration)
     {
         try
@@ -328,6 +538,7 @@ public class TimedThread
         }
     }
 
+    // Decrease the remaining time for all threads
     public static void tickTime(int duration)
     {
         try
@@ -349,6 +560,7 @@ public class TimedThread
         }
     }
 
+    // Unpause threads and reapply effect logic for paused effects
     public static void unPause()
     {
         try
@@ -362,6 +574,12 @@ public class TimedThread
                         long time = Volatile.Read(ref thread.remain);
                         ControlClient.Instance.Send(new EffectResponse(thread.id, EffectStatus.Resumed, time));
                         thread.paused = false;
+
+
+                        Mod.mls.LogInfo("UNPAUSE HAPPENING");
+                        // Reapply effect logic during unpause
+                        thread.effect.addEffect(thread.remain);
+                        //Mod.barkMessage($"Effect {thread.effect.type} reapplied during unpause!");
                     }
                 }
             }
@@ -372,6 +590,7 @@ public class TimedThread
         }
     }
 
+    // Constructor for initializing a new TimedThread
     public TimedThread(uint id, TimedType type, long duration)
     {
         effect = new Timed(type);
@@ -393,6 +612,7 @@ public class TimedThread
         }
     }
 
+    // Main run logic for the thread
     public void Run()
     {
         Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;

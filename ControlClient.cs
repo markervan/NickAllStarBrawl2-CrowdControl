@@ -45,28 +45,53 @@ public class ControlClient
     private static readonly Dictionary<string, EffectDelegate> Delegate = new()
     {
         //test
-        { "test_effect", EffectDelegates.TestEffect},
+        //{ "test_effect", EffectDelegates.TestEffect},
 
         //health effect
         { "damage50", EffectDelegates.Damage50 },
         { "damage100", EffectDelegates.Damage100 },
         { "heal50", EffectDelegates.Heal50 },
         { "heal100", EffectDelegates.Heal100 },
+        //Currency effects
+        { "slime100", EffectDelegates.AddSlime },
+        { "splat100", EffectDelegates.AddSplat },
+        { "blimp100", EffectDelegates.AddBlimp },
+        { "slime100-", EffectDelegates.SubSlime },
+        { "splat100-", EffectDelegates.SubSplat },
+        { "blimp100-", EffectDelegates.SubBlimp },
 
         //spawn effects
         { "spawnitemrandom", EffectDelegates.SpawnItem },
+        { "spawnbombs", EffectDelegates.SpawnBombs },
+        { "spawnhugh", EffectDelegates.SpawnHugh },
+        { "spawnfrida", EffectDelegates.SpawnFrida },
+        { "spawnpuff", EffectDelegates.SpawnMrsPuff },
+        { "spawngir", EffectDelegates.SpawnGir },
+        { "spawncabbagge", EffectDelegates.SpawnCabbaggeMerchant },
+        { "spawnptm", EffectDelegates.SpawnPowderedToastMan },
+        { "spawnfountain", EffectDelegates.SpawnFountain },
 
         //player effects
         { "enhance_dash", EffectDelegates.EnhanceDash },
         { "explosive_proj", EffectDelegates.ExplosiveProjectiles },
         { "fullmeter", EffectDelegates.EffectFullMeter },
+        { "shieldbreak", EffectDelegates.ShieldBreak },
+        { "noslimeult", EffectDelegates.NoSlimeUlt },
         { "killplayer", EffectDelegates.EffectKillPlayer },
         { "ultraman", EffectDelegates.EffectUltraman },
         { "swapcharacterrandom", EffectDelegates.SwapCharacterRandom },
+        //Actions
+        { "triggerulti", EffectDelegates.TriggerUlt },
+        { "triggerburst", EffectDelegates.TriggerSlimeBurst },
+        { "triggerspinout", EffectDelegates.TriggerSpinOut },
+        { "triggerteeter", EffectDelegates.TriggerTeeter },
+        { "triggerentrance", EffectDelegates.TriggerEntrace },
 
         //enemies effects
         { "killenemies", EffectDelegates.EffectKillEnemies},
         { "kaijuenemies", EffectDelegates.EffectKaiju },
+        { "mobsslow", EffectDelegates.MobsSuperSlowness },
+        { "mobsspeed", EffectDelegates.MobsSuperSpeed },
 
         //match effects
         { "endmatch", EffectDelegates.EndMatch},
@@ -77,10 +102,9 @@ public class ControlClient
 
         //Status Effect
         { "effect_sleep", EffectDelegates.EffectSleep },
-        { "effect_slowdown", EffectDelegates.EffectSlowDown},
         { "effect_confused", EffectDelegates.EffectConfuse},
-        { "effect_supersize", EffectDelegates.EffectSuperSize},
-        { "effect_tinysize", EffectDelegates.EffectTinySize}
+        { "effect_superspeed", EffectDelegates.SuperSpeed },
+        { "effect_superslow", EffectDelegates.SuperSlowness },
 
     };
 
